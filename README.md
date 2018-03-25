@@ -22,9 +22,10 @@ jobcoin-mixer> sbt test
 jobcoin-mixer> sbt stage
 jobcoin-mixer> target/universal/stage/bin/jobcoin-mixer
 ```
+```
 service URL: POST: localhost:9000/jobcoin-mixer/addresses
 request: {"proxyRecipients": ["newAddress1", "newAddress2"]}
 response: {"depositAddress": "depositAddress1"}
-
+```
 ## Notes
 - Days are shortened to minutes
