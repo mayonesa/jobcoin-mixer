@@ -3,7 +3,7 @@ package services
 import javax.inject.Inject
 import play.api.libs.ws.WSClient
 import scala.concurrent.{ ExecutionContext, Future }
-import play.api.libs.json.JsValue
+import play.api.libs.json.{ Json, JsValue }
 import play.api.http.Status.OK
 import services.auxiliaries.{ Address, currentTime, Jobcoin }
 import concurrent.duration._
@@ -21,21 +21,20 @@ class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
     }.fallbackTo(Future(None))
 
   def transfer(from: Address, to: Address, amt: Jobcoin): Future[Unit] = {
-    val requestJson = s"""{ "amount": $amt, "fromAddress": "$from", "toAddress": "$to" }"""
+    val requestJson = Json.parse(s"""{ "amount": $amt, "fromAddress": "$from", "toAddress": "$to" }""")
     Logger.debug(s"initiating transfer from $from to $to for $amt")
-    ws.url(transactionsUrl).addHttpHeaders(("Content-Type" -> "application/json")).post(requestJson).flatMap {
-      resp =>
-        val logMsg = s"transfer from $from to $to for $amt"
-        val p = Promise[Unit]()
-        val status = resp.status
-        if (resp.status == OK) {
-          Logger.info(logMsg + " succeeded")
-          p.success(()).future
-        } else {
-          val errMsg = s"$logMsg failed (status: $status): ${resp.body}"
-          Logger.error(errMsg)
-          p.failure(new IllegalStateException(errMsg)).future
-        }
+    ws.url(transactionsUrl).post(requestJson).flatMap { resp =>
+      val logMsg = s"transfer from $from to $to for $amt"
+      val p = Promise[Unit]()
+      val status = resp.status
+      if (resp.status == OK) {
+        Logger.info(logMsg + " succeeded")
+        p.success(()).future
+      } else {
+        val errMsg = s"$logMsg failed (status: $status): ${resp.body}"
+        Logger.error(errMsg)
+        p.failure(new IllegalStateException(errMsg)).future
+      }
     }
   }
 
