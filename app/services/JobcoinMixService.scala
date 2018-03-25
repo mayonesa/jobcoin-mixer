@@ -31,10 +31,16 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
           _.fold(loop) { bal =>
             def dstrbt = distribute(proxyRecipients, bal, t)
             if (bal != 0)
-              exchange.transfer(depositAddress, houseAccount, bal).foreach {
-                if (_)
-                  if (currentTime < t.t3) schedule(() => dstrbt, t.t3 - currentTime, scheduler)
-                  else dstrbt
+              exchange.transfer(depositAddress, houseAccount, bal).foreach { _ =>
+                val logMsg = "distribution to " + proxyRecipients
+                if (currentTime < t.t3) {
+                  val distDelay = t.t3 - currentTime
+                  schedule(() => dstrbt, distDelay, scheduler)
+                  Logger.debug(s"$logMsg in ${distDelay.toSeconds} seconds")
+                } else {
+                  dstrbt
+                  Logger.debug(logMsg)
+                }
               }
             else schedule(() => loop, pollPeriod, scheduler)
           }
@@ -49,7 +55,9 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
     val nRecipients = proxyRecipients.size
     val sameAmt = bal / (nRecipients + 1)
     val distributedBal = List.fill(nRecipients - 1)(sameAmt) :+ bal - sameAmt * (nRecipients - 1)
-    proxyRecipients.zip(distributedBal).foreach {
+    val distributions = proxyRecipients.zip(distributedBal)
+    Logger.debug("attempting distributions: " + distributions)
+    distributions.foreach {
       case (to, amt) =>
         def transfer: Unit = exchange.transfer(houseAccount, to, amt)
         schedule(() => transfer, t.t3 + (r.nextFloat minutes) - currentTime, new Timer)

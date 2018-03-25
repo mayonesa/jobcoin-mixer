@@ -8,6 +8,8 @@ import play.api.http.Status.OK
 import services.auxiliaries.{ Address, currentTime, Jobcoin }
 import concurrent.duration._
 import play.api.Logger
+import scala.concurrent.Promise
+import scala.util.Success
 
 class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
   private val transactionsUrl = "http://jobcoin.gemini.com/vendetta/api/transactions"
@@ -16,26 +18,25 @@ class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
     ws.url(addressInfoUrl(address)).get.map { resp =>
       if (resp.status == OK) Some(balance(resp.json))
       else None
-    }
+    }.fallbackTo(Future(None))
 
-  def transfer(from: Address, to: Address, amt: Jobcoin, tryUntil: Int = 4): Future[Boolean] = {
+  def transfer(from: Address, to: Address, amt: Jobcoin): Future[Unit] = {
     val requestJson = s"""{ "amount": $amt, "fromAddress": "$from", "toAddress": "$to" }"""
-
-    def loop(i: Int): Future[Boolean] =
-      ws.url(transactionsUrl).addHttpHeaders(("Content-Type" -> "application/json")).post(requestJson).flatMap {
-        resp =>
-          if (resp.status == OK) Future(true)
-          else {
-            Logger.warn(s"transfer attempt $i from $from to $to for $amt failed: ${resp.body}")
-            if (i < tryUntil) loop(i + 1)
-            else {
-              Logger.error(s"all transfer attempts from $from to $to for $amt failed")
-              Future(false)
-            }
-          }
-      }
-
-    loop(0)
+    Logger.debug(s"initiating transfer from $from to $to for $amt")
+    ws.url(transactionsUrl).addHttpHeaders(("Content-Type" -> "application/json")).post(requestJson).flatMap {
+      resp =>
+        val logMsg = s"transfer from $from to $to for $amt"
+        val p = Promise[Unit]()
+        val status = resp.status
+        if (resp.status == OK) {
+          Logger.info(logMsg + " succeeded")
+          p.success(()).future
+        } else {
+          val errMsg = s"$logMsg failed (status: $status): ${resp.body}"
+          Logger.error(errMsg)
+          p.failure(new IllegalStateException(errMsg)).future
+        }
+    }
   }
 
   private def addressInfoUrl(address: Address) = "http://jobcoin.gemini.com/vendetta/api/addresses/" + address

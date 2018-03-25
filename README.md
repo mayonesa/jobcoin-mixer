@@ -28,4 +28,4 @@ request: {"proxyRecipients": ["newAddress1", "newAddress2"]}
 response: {"depositAddress": "depositAddress1"}
 ```
 ## Notes
-- Days are shortened to minutes
+- T is in terms of minutes

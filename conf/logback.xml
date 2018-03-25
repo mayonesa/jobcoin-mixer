@@ -52,7 +52,7 @@
   </appender>
 
   <logger name="play" level="INFO" />
-  <logger name="application" level="INFO" />
+  <logger name="application" level="DEBUG" />
   <logger name="v1.post" level="TRACE" />
 
   <root level="WARN">
