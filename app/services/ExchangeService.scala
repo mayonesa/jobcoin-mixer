@@ -25,9 +25,9 @@ class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
     Logger.debug(s"initiating transfer from $from to $to for $amt")
     ws.url(transactionsUrl).post(requestJson).flatMap { resp =>
       val logMsg = s"transfer from $from to $to for $amt"
-      val p = Promise[Unit]()
+      val p = Promise[Unit]
       val status = resp.status
-      if (resp.status == OK) {
+      if (status == OK) {
         Logger.info(logMsg + " succeeded")
         p.success(()).future
       } else {
