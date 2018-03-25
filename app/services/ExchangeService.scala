@@ -5,7 +5,7 @@ import play.api.libs.ws.WSClient
 import scala.concurrent.{ ExecutionContext, Future }
 import play.api.libs.json.{ Json, JsValue }
 import play.api.http.Status.OK
-import services.auxiliaries.{ Address, currentTime, Jobcoin }
+import services.auxiliaries.{ Address, Jobcoin }
 import concurrent.duration._
 import play.api.Logger
 import scala.concurrent.Promise
