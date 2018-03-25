@@ -25,6 +25,8 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
     val scheduler = new Timer
     val t = T()
 
+    def poll(delay: FiniteDuration = pollPeriod) = schedule(() => loop, delay, scheduler)
+
     def loop: Unit =
       if (currentTime <= t.t2)
         exchange.balance(depositAddress).foreach {
@@ -42,12 +44,12 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
                   Logger.debug(logMsg)
                 }
               }
-            else schedule(() => loop, pollPeriod, scheduler)
+            else poll()
           }
         }
       else Logger.warn(s"deposit into $depositAddress not received by T+2")
 
-    schedule(() => loop, t.t1 - currentTime, scheduler)
+    poll(t.t1 - currentTime)
   }
 
   private def distribute(proxyRecipients: List[Address], bal: Jobcoin, t: T) = {
