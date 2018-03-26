@@ -1,12 +1,12 @@
 package services
 
 import javax.inject.Inject
-import scala.concurrent.ExecutionContext
+import concurrent.ExecutionContext
 import java.util.concurrent.atomic.AtomicLong
 import services.auxiliaries._
 import concurrent.duration._
 import play.api.Logger
-import scala.util.Random
+import util.Random
 import models._
 
 class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: ExecutionContext) {
