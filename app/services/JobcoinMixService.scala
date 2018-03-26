@@ -47,7 +47,7 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
     val sameAmt = bal / (nRecipients + 1)
     val distributedBal = List.fill(nRecipients - 1)(sameAmt) :+ bal - sameAmt * (nRecipients - 1)
     val distributions = proxyRecipients.zip(distributedBal)
-    Logger.debug("attempting distributions: " + distributions)
+    Logger.debug(s"attempting distributions: $distributions soon")
     distributions.foreach {
       case (to, amt) =>
         Scheduler().schedule(() => exchange.transfer(houseAccount, to, amt), t.t3 + (r.nextFloat minutes))

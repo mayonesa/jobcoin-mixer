@@ -26,7 +26,7 @@ class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
       val status = resp.status
       if (status == OK) {
         Logger.info(logMsg + " succeeded")
-        cb
+        cb(())
       } else Logger.error(s"$logMsg failed (status: $status): ${resp.body}")
     }
   }
