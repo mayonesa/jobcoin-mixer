@@ -5,7 +5,6 @@ import scala.concurrent.{ ExecutionContext, Future }
 import java.util.concurrent.atomic.AtomicLong
 import services.auxiliaries._
 import concurrent.duration._
-import java.util.Timer
 import play.api.Logger
 import scala.util.Random
 import models._
@@ -22,34 +21,24 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
 
   private def processDeposit(depositAddress: Address, proxyRecipients: List[Address]) = {
     val pollPeriod = 5 seconds
-    val scheduler = new Timer
+    val s = Scheduler()
     val t = T()
 
-    def poll(delay: FiniteDuration = pollPeriod) = schedule(() => loop, delay, scheduler)
+    def poll(when: FiniteDuration = currentTime + pollPeriod) = s.schedule(() => loop, when)
 
     def loop: Unit =
-      if (currentTime <= t.t2)
+      if (currentTime < t.t2)
         exchange.balance(depositAddress).foreach {
-          _.fold(loop) { bal =>
-            def dstrbt = distribute(proxyRecipients, bal, t)
-            if (bal != 0)
-              exchange.transfer(depositAddress, houseAccount, bal).foreach { _ =>
-                val logMsg = "distribution to " + proxyRecipients
-                if (currentTime < t.t3) {
-                  val distDelay = t.t3 - currentTime
-                  schedule(() => dstrbt, distDelay, scheduler)
-                  Logger.debug(s"$logMsg in ${distDelay.toSeconds} seconds")
-                } else {
-                  dstrbt
-                  Logger.debug(logMsg)
-                }
-              }
+          _.fold(poll()) { bal =>
+            if (bal != 0) s.schedule(() => exchange.transfer(depositAddress, houseAccount, bal, { _ =>
+              s.schedule(() => distribute(proxyRecipients, bal, t), t.t3)
+            }), t.t2)
             else poll()
           }
         }
       else Logger.warn(s"deposit into $depositAddress not received by T+2")
 
-    poll(t.t1 - currentTime)
+    poll(t.t1)
   }
 
   private def distribute(proxyRecipients: List[Address], bal: Jobcoin, t: T) = {
@@ -61,8 +50,7 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
     Logger.debug("attempting distributions: " + distributions)
     distributions.foreach {
       case (to, amt) =>
-        def transfer: Unit = exchange.transfer(houseAccount, to, amt)
-        schedule(() => transfer, t.t3 + (r.nextFloat minutes) - currentTime, new Timer)
+        Scheduler().schedule(() => exchange.transfer(houseAccount, to, amt), t.t3 + (r.nextFloat minutes))
     }
   }
 

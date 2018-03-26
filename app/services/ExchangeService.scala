@@ -8,8 +8,6 @@ import play.api.http.Status.OK
 import services.auxiliaries.{ Address, Jobcoin }
 import concurrent.duration._
 import play.api.Logger
-import scala.concurrent.Promise
-import scala.util.Success
 
 class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
   private val transactionsUrl = "http://jobcoin.gemini.com/vendetta/api/transactions"
@@ -20,21 +18,16 @@ class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
       else None
     }.fallbackTo(Future(None))
 
-  def transfer(from: Address, to: Address, amt: Jobcoin): Future[Unit] = {
+  def transfer(from: Address, to: Address, amt: Jobcoin, cb: Unit => Unit = _ => ()): Unit = {
     val requestJson = Json.parse(s"""{ "amount": $amt, "fromAddress": "$from", "toAddress": "$to" }""")
     Logger.debug(s"initiating transfer from $from to $to for $amt")
-    ws.url(transactionsUrl).post(requestJson).flatMap { resp =>
+    ws.url(transactionsUrl).post(requestJson).foreach { resp =>
       val logMsg = s"transfer from $from to $to for $amt"
-      val p = Promise[Unit]
       val status = resp.status
       if (status == OK) {
         Logger.info(logMsg + " succeeded")
-        p.success(()).future
-      } else {
-        val errMsg = s"$logMsg failed (status: $status): ${resp.body}"
-        Logger.error(errMsg)
-        p.failure(new IllegalStateException(errMsg)).future
-      }
+        cb
+      } else Logger.error(s"$logMsg failed (status: $status): ${resp.body}")
     }
   }
 
