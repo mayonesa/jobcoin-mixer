@@ -1,7 +1,7 @@
 package services
 
 import javax.inject.Inject
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.ExecutionContext
 import java.util.concurrent.atomic.AtomicLong
 import services.auxiliaries._
 import concurrent.duration._
