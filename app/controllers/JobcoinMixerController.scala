@@ -2,20 +2,23 @@ package controllers
 
 import javax.inject.Inject
 import play.api.mvc.{ AbstractController, ControllerComponents }
+import concurrent.{ ExecutionContext, Future }
 import services.JobcoinMixService
 import services.auxiliaries.Address
 import play.api.Logger
 import play.api.libs.json.Json
 
-class JobcoinMixerController @Inject() (cc: ControllerComponents, mixer: JobcoinMixService) extends AbstractController(cc) {
+class JobcoinMixerController @Inject() (cc: ControllerComponents, mixer: JobcoinMixService)(implicit ec: ExecutionContext) extends AbstractController(cc) {
 
-  def addresses = Action { request =>
-    request.body.asJson.fold(badReq("Missing request JSON")) { json =>
-      (json \ "proxyRecipients").asOpt[Vector[Address]].fold(badReq("'proxyRecipients' attribute missing from request JSON")) {
+  def addresses = Action.async { request =>
+    request.body.asJson.fold(badReqFut("Missing request JSON")) { json =>
+      (json \ "proxyRecipients").asOpt[Vector[Address]].fold(badReqFut("'proxyRecipients' attribute missing from request JSON")) {
         proxyRecipients =>
           val effectivePR = proxyRecipients.map(_.trim).filterNot(_.isEmpty)
-          if (effectivePR.isEmpty) badReq("must have proxy recipients")
-          else ok(mixer.mix(effectivePR))
+          if (effectivePR.isEmpty) badReqFut("must have proxy recipients")
+          else mixer.mix(effectivePR).map(ok).recover {
+            case e => badReq(e.getMessage)
+          }
       }
     }
   }
@@ -26,4 +29,5 @@ class JobcoinMixerController @Inject() (cc: ControllerComponents, mixer: Jobcoin
     Logger.warn(msg)
     BadRequest(errorJson(msg))
   }
+  private def badReqFut(msg: String) = Future(badReq(msg))
 }

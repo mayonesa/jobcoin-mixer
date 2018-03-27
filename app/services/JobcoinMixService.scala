@@ -1,8 +1,7 @@
 package services
 
 import javax.inject.Inject
-import concurrent.ExecutionContext
-import java.util.concurrent.atomic.AtomicLong
+import concurrent.{ ExecutionContext, Future }
 import services.auxiliaries._
 import concurrent.duration._
 import play.api.Logger
@@ -10,14 +9,13 @@ import util.Random
 import models._
 
 class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: ExecutionContext) {
-  private val uid = new AtomicLong(0)
   private val houseAccount = "houseAcct"
 
-  def mix(proxyRecipients: Vector[Address]): Address = {
-    val depositAddress = newDepositAddress
-    processDeposit(depositAddress, proxyRecipients)
-    depositAddress
-  }
+  def mix(proxyRecipients: Vector[Address]): Future[Address] =
+    newDepositAddress.map { depositAddress =>
+      processDeposit(depositAddress, proxyRecipients)
+      depositAddress
+    }
 
   private def processDeposit(depositAddress: Address, proxyRecipients: Vector[Address]) = {
     val pollPeriod = 5 seconds
@@ -68,9 +66,17 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
     }
   }
 
-  private def newDepositAddress = {
-    val da = s"da${uid.incrementAndGet}"
-    Logger.info(s"deposit account, $da, created")
-    da
+  private def newDepositAddress: Future[String] = {
+    val r = new Random
+    val da = r.alphanumeric.take(r.nextInt(10)).mkString
+    exchange.exists(da).flatMap { exists =>
+      if (exists) {
+        Logger.warn(s"new deposit address, $da, collision")
+        newDepositAddress
+      } else {
+        Logger.info(s"deposit account, $da, created")
+        Future(da)
+      }
+    }
   }
 }
