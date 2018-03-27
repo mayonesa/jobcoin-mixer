@@ -22,7 +22,7 @@ class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
     val requestJson = Json.parse(s"""{ "amount": $amt, "fromAddress": "$from", "toAddress": "$to" }""")
     Logger.debug(s"initiating transfer from $from to $to for $amt")
     ws.url(transactionsUrl).post(requestJson).foreach { resp =>
-      val logMsg = s"transfer from $from to $to for $amt"
+      val logMsg = s"transfer from $from to $to for $amt jobcoins"
       val status = resp.status
       if (status == OK) {
         Logger.info(logMsg + " succeeded")

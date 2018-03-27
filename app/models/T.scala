@@ -9,4 +9,5 @@ case class T() {
   val t1 = t(1)
   val t2 = t(2)
   val t3 = t(3)
+  val t4 = t(4)
 }
