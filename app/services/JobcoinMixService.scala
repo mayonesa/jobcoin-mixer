@@ -20,32 +20,33 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
   private def processDeposit(depositAddress: Address, proxyRecipients: Vector[Address]) = {
     val pollPeriod = 5 seconds
     val pad = 15 millis
-    val s = Scheduler()
-    val t = T()
+    val t = Timing()
 
-    def poll(when: FiniteDuration = currentTime + pollPeriod) =
-      s.schedule(() => loop, if (when < t.t2) when else t.t2 - pad)
+    def poll = {
+      val when = currentTime + pollPeriod
+      t.schedule(() => loop, if (when < t.t2) when else t.t2 - pad)
+    }
 
     def loop: Unit =
       if (currentTime < t.t2)
         exchange.balance(depositAddress).foreach {
-          _.fold(poll()) { bal =>
+          _.fold(poll) { bal =>
             if (bal < 0) Logger.error(s"deposit address, $depositAddress, is negative")
-            else if (bal == 0) poll()
+            else if (bal == 0) poll
             else {
               Logger.info(s"$bal jobcoins -> $depositAddress")
-              s.schedule(() => exchange.transfer(depositAddress, houseAccount, bal).foreach { _ =>
-                s.schedule(() => distribute(proxyRecipients, bal, t, s), t.t3)
-              }, t.t2)
+              t.atT2(() => exchange.transfer(depositAddress, houseAccount, bal).foreach { _ =>
+                t.atT3(() => distribute(proxyRecipients, bal, t))
+              })
             }
           }
         }
       else Logger.warn(s"deposit into $depositAddress not received by T+2")
 
-    poll(t.t1)
+    t.atT1(() => loop)
   }
 
-  private def distribute(proxyRecipients: Vector[Address], bal: Jobcoin, t: T, s: Scheduler) = {
+  private def distribute(proxyRecipients: Vector[Address], bal: Jobcoin, t: Timing) = {
     val r = new Random
     val nRecipients = proxyRecipients.size
     val distros = if (nRecipients == 1) Vector(bal) else {
@@ -64,7 +65,7 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
 
     Logger.debug("scheduling distributions to: " + proxyRecipients)
     (0 until nRecipients).foreach { i =>
-      s.schedule(() => exchange.transfer(houseAccount, proxyRecipients(i), distros(i)), whens(i))
+      t.schedule(() => exchange.transfer(houseAccount, proxyRecipients(i), distros(i)), whens(i))
     }
   }
 
