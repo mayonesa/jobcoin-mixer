@@ -34,9 +34,9 @@ class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: Execu
             else if (bal == 0) poll()
             else {
               Logger.info(s"$bal jobcoins -> $depositAddress")
-              s.schedule(() => exchange.transfer(depositAddress, houseAccount, bal, { _ =>
+              s.schedule(() => exchange.transfer(depositAddress, houseAccount, bal).foreach { _ =>
                 s.schedule(() => distribute(proxyRecipients, bal, t, s), t.t3)
-              }), t.t2)
+              }, t.t2)
             }
           }
         }

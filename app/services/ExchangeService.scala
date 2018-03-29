@@ -14,17 +14,17 @@ class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
   private val transactionsUrl = "http://jobcoin.gemini.com/vendetta/api/transactions"
 
   def balance(address: Address): Future[Option[Jobcoin]] = {
-    lazy val errMsg = s"balance: `addresses` service for $address did not respond well "
+    def none(append: String) = {
+      val errMsg = s"balance: `addresses` service for $address did not respond well "
+      Logger.warn(errMsg + append)
+      None
+    }
+
     addressInfo(address).map { resp =>
       if (resp.status == OK) Some(balance(resp.json))
-      else {
-        Logger.warn(errMsg + error(resp))
-        None
-      }
+      else none(error(resp))
     }.recover {
-      case e =>
-        Logger.warn(errMsg + e.getMessage)
-        None
+      case e => none(e.getMessage)
     }
   }
 
@@ -40,18 +40,24 @@ class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
     }
   }
 
-  def transfer(from: Address, to: Address, amt: Jobcoin, cb: Unit => Unit = _ => ()): Unit = {
+  def transfer(from: Address, to: Address, amt: Jobcoin): Future[Unit] = {
     val requestJson = Json.parse(s"""{ "amount": $amt, "fromAddress": "$from", "toAddress": "$to" }""")
     val logMsg = s"transfer(): $from -> $to: $amt jobcoins"
-    lazy val errMsg = logMsg + " failed: "
+
+    def fail(append: String) = {
+      val errMsg = logMsg + " failed: " + append
+      Logger.error(errMsg)
+      Failure(new IllegalStateException(errMsg))
+    }
+
     Logger.debug("initiating " + logMsg)
-    ws.url(transactionsUrl).post(requestJson).onComplete {
+    ws.url(transactionsUrl).post(requestJson).transform {
       case Success(resp) =>
         if (resp.status == OK) {
           Logger.info(logMsg + " succeeded")
-          cb(())
-        } else Logger.error(errMsg + error(resp))
-      case Failure(e) => Logger.error(errMsg + e.getMessage)
+          Success(())
+        } else fail(error(resp))
+      case Failure(e) => fail(e.getMessage)
     }
   }
 
