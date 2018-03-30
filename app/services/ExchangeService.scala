@@ -65,7 +65,7 @@ class ExchangeService @Inject() (ws: WSClient)(implicit ec: ExecutionContext) {
 
   private def addressInfoUrl(address: Address) = "http://jobcoin.gemini.com/vendetta/api/addresses/" + address
 
-  private def balance(addressInfoJson: JsValue) = (addressInfoJson \ "balance").as[BigDecimal]
+  private def balance(addressInfoJson: JsValue) = (addressInfoJson \ "balance").as[Jobcoin]
 
   private def hasTransactions(addressInfoJson: JsValue) = !(addressInfoJson \ "transactions").as[List[JsObject]].isEmpty
 
