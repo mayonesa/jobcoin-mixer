@@ -16,7 +16,7 @@ class JobcoinMixerController @Inject() (cc: ControllerComponents, mixer: Jobcoin
         proxyRecipients =>
           val effectivePR = proxyRecipients.map(_.trim).filterNot(_.isEmpty)
           if (effectivePR.isEmpty) badReqFut("must have proxy recipients")
-          else mixer.mix(effectivePR).map(ok).recover {
+          else mixer(effectivePR).map(ok).recover {
             case e => badReq(e.getMessage)
           }
       }

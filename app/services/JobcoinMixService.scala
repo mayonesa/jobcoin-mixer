@@ -11,7 +11,7 @@ import models.Timing.currentTime
 class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: ExecutionContext) {
   private val houseAccount = "houseAcct"
 
-  def mix(proxyRecipients: List[Address]): Future[Address] =
+  def apply(proxyRecipients: List[Address]): Future[Address] =
     newDepositAddress.map { depositAddress =>
       processDeposit(depositAddress, proxyRecipients)
       depositAddress
