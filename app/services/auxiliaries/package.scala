@@ -13,7 +13,7 @@ package object auxiliaries {
     val r = new Random
     if (n == 1) List(sum) else {
       val summandMax = sum / (n - 1)
-      val summandsTail = List.tabulate(n - 1)(_ => r.nextFloat * summandMax)
+      val summandsTail = List.fill(n - 1)(r.nextFloat * summandMax)
       (sum - summandsTail.sum) :: summandsTail
     }
   }
