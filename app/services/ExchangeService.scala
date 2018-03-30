@@ -6,7 +6,6 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import play.api.libs.json.{ Json, JsValue, JsObject }
 import play.api.http.Status.OK
 import services.auxiliaries.{ Address, Jobcoin }
-import concurrent.duration._
 import play.api.Logger
 import util.{ Success, Failure }
 

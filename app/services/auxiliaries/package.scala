@@ -1,13 +1,10 @@
 package services
 
-import concurrent.duration._
 import util.Random
 
 package object auxiliaries {
   type Address = String
   type Jobcoin = BigDecimal
-
-  def currentTime = System.currentTimeMillis().millis
 
   def randomSummands(n: Int, sum: Jobcoin): List[Jobcoin] = {
     val r = new Random

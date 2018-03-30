@@ -6,6 +6,7 @@ import services.auxiliaries._
 import concurrent.duration._
 import play.api.Logger
 import models._
+import models.Timing.currentTime
 
 class JobcoinMixService @Inject() (exchange: ExchangeService)(implicit ec: ExecutionContext) {
   private val houseAccount = "houseAcct"
