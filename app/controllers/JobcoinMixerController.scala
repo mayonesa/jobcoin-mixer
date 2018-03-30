@@ -12,7 +12,7 @@ class JobcoinMixerController @Inject() (cc: ControllerComponents, mixer: Jobcoin
 
   def addresses = Action.async { request =>
     request.body.asJson.fold(badReqFut("Missing request JSON")) { json =>
-      (json \ "proxyRecipients").asOpt[Vector[Address]].fold(badReqFut("'proxyRecipients' attribute missing from request JSON")) {
+      (json \ "proxyRecipients").asOpt[List[Address]].fold(badReqFut("'proxyRecipients' attribute missing from request JSON")) {
         proxyRecipients =>
           val effectivePR = proxyRecipients.map(_.trim).filterNot(_.isEmpty)
           if (effectivePR.isEmpty) badReqFut("must have proxy recipients")
