@@ -32,9 +32,9 @@ object Timing {
     val r = new Random
     if (n == 1) IndexedSeq(floor + (r.nextFloat minutes))
     else {
-      val sliceMax = (1 minute) / (n - 1)
+      val sliceMax = (ceil - floor) / n
       def nextWhen(base: Duration) = base + r.nextFloat * sliceMax
-      val wInit = (1 until n).scanLeft(nextWhen(floor)) { (w, _) =>
+      val wInit = (1 until (n - 1)).scanLeft(nextWhen(floor)) { (w, _) =>
         nextWhen(w)
       }
       wInit :+ (ceil - wInit.last) * r.nextFloat + wInit.last
