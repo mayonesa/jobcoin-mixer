@@ -17,6 +17,6 @@ package object auxiliaries {
 
   def randomString(n: Int): String = {
     val r = new Random
-    r.alphanumeric.take(r.nextInt(n)).mkString
+    r.nextString(1 + r.nextInt(n))
   }
 }
